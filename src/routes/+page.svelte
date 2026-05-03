@@ -27,12 +27,15 @@
 		url: string;
 	};
 
+	type DaySort = "date" | "count";
+
 	let { data }: { data: PageData } = $props();
 	let selectedDateOverride = $state<string | null>(null);
 	let clips = $state<Clip[]>([]);
 	let selectedClip = $state<Clip | null>(null);
 	let archiveError = $state("");
 	let search = $state("");
+	let daySort = $state<DaySort>("date");
 	let activeTab = $state<"live" | "archive">("live");
 	let liveFrame = $state<HTMLDivElement | null>(null);
 	let isLiveFullscreen = $state(false);
@@ -47,9 +50,16 @@
 	const selectedDay = $derived(days.find((day) => day.date === selectedDate) ?? null);
 	const normalizedSearch = $derived(normalizeSearch(search));
 	const hasSearch = $derived(normalizedSearch.length > 0);
-	const filteredDays = $derived(
-		days.filter((day) => day.date.includes(normalizedSearch))
-	);
+	const visibleDays = $derived.by(() => {
+		const filtered = days.filter((day) => day.date.includes(normalizedSearch));
+		if (daySort === "date") return filtered;
+
+		return [...filtered].sort((left, right) => {
+			const countOrder = right.count - left.count;
+			if (countOrder !== 0) return countOrder;
+			return right.date.localeCompare(left.date);
+		});
+	});
 	const groupedClips = $derived.by(() => {
 		const groups = new Map<string, Clip[]>();
 		for (const clip of clips) {
@@ -100,6 +110,10 @@
 
 	function clearSearch() {
 		search = "";
+	}
+
+	function toggleDaySort() {
+		daySort = daySort === "date" ? "count" : "date";
 	}
 
 	function pickDay(date: string) {
@@ -261,9 +275,20 @@
 					class="order-2 flex h-[340px] flex-col rounded-lg border border-border bg-card shadow-sm lg:order-1 lg:h-auto lg:min-h-0"
 				>
 					<div class="shrink-0 border-b border-border p-3">
-						<div class="mb-2 flex items-center gap-2 text-sm font-semibold">
-							<CalendarIcon class="size-4" />
-							日期
+						<div class="mb-2 flex items-center justify-between gap-2">
+							<div class="flex items-center gap-2 text-sm font-semibold">
+								<CalendarIcon class="size-4" />
+								日期
+							</div>
+							<Button.Button
+								variant="outline"
+								size="xs"
+								aria-label={daySort === "date" ? "按片段数量排序日期" : "按日期排序日期"}
+								aria-pressed={daySort === "count"}
+								onclick={toggleDaySort}
+							>
+								{daySort === "date" ? "按日期" : "按数量"}
+							</Button.Button>
 						</div>
 						<div class="relative">
 							<SearchIcon
@@ -292,8 +317,8 @@
 
 					<ScrollArea.ScrollArea class="min-h-0 flex-1">
 						<div class="space-y-1 p-2">
-							{#if filteredDays.length > 0}
-								{#each filteredDays as day}
+							{#if visibleDays.length > 0}
+								{#each visibleDays as day}
 									<button
 										class={[
 											"group w-full rounded-lg border p-2 text-left transition",
