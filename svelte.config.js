@@ -1,19 +1,15 @@
-import adapter from '@eslym/sveltekit-adapter-bun'
+import adapter from "@eslym/sveltekit-adapter-bun"
 
 /** @type {import('@sveltejs/kit').Config} */
 const config = {
-	compilerOptions: {
-		// Force runes mode for the project, except for libraries. Can be removed in svelte 6.
-		runes: ({ filename }) => (filename.split(/[/\\]/).includes('node_modules') ? undefined : true)
-	},
 	kit: {
 		adapter: adapter({
-			bundler: 'bun',
+			bundler: "bun",
 			bunBuildMinify: true,
 			precompress: false,
-			sourceMap: false
-		})
-	}
+			sourceMap: false,
+		}),
+	},
 }
 
 export default config

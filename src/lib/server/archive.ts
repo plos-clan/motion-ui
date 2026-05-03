@@ -55,31 +55,39 @@ export async function listDays({ refresh = false } = {}) {
 	if (!refresh && dayCache && dayCache.expiresAt > now) return dayCache.days
 
 	const entries = await readdir(motionConfig.videoDir, { withFileTypes: true })
-	const days: DayRecord[] = []
+	const dayEntries = entries.filter(
+		(entry) => entry.isDirectory() && isDay(entry.name),
+	)
+	const dayRecords: (DayRecord | null)[] = await Promise.all(
+		dayEntries.map(async (entry) => {
+			const date = entry.name
+			const dir = path.join(motionConfig.videoDir, date)
+			const files = await readdir(dir)
+			const clips = files.filter(isClip).sort()
+			if (clips.length === 0) return null
 
-	await Promise.all(
-		entries
-			.filter((entry) => entry.isDirectory() && isDay(entry.name))
-			.map(async (entry) => {
-				const clips = (await readdir(path.join(motionConfig.videoDir, entry.name))).filter(isClip).sort()
-				if (clips.length === 0) return
-
-				const sizes = await Promise.all(
-					clips.map(async (clip) => (await stat(path.join(motionConfig.videoDir, entry.name, clip))).size)
-				)
-
-				days.push({
-					date: entry.name,
-					count: clips.length,
-					first: clipTime(clips[0]),
-					last: clipTime(clips.at(-1) ?? clips[0]),
-					bytes: sizes.reduce((sum, size) => sum + size, 0),
-				})
+			const sizeReads = clips.map(async (clip) => {
+				const filePath = path.join(dir, clip)
+				const metadata = await stat(filePath)
+				return metadata.size
 			})
+			const sizes = await Promise.all(sizeReads)
+			const lastClip = clips.at(-1) ?? clips[0]
+
+			return {
+				date,
+				count: clips.length,
+				first: clipTime(clips[0]),
+				last: clipTime(lastClip),
+				bytes: sizes.reduce((sum, size) => sum + size, 0),
+			}
+		}),
 	)
 
+	const days = dayRecords.filter((day): day is DayRecord => day !== null)
 	days.sort((a, b) => b.date.localeCompare(a.date))
 	dayCache = { days, expiresAt: now + CACHE_TTL_MS }
+
 	return days
 }
 
@@ -88,27 +96,28 @@ export async function listClips(date: string) {
 
 	const dir = path.join(motionConfig.videoDir, date)
 	const files = (await readdir(dir).catch(() => [])).filter(isClip).sort()
-	const clips = await Promise.all(
-		files.map(async (file): Promise<ClipRecord> => {
-			const metadata = await stat(path.join(dir, file))
-			const time = clipTime(file)
 
-			return {
-				date,
-				file,
-				time,
-				hour: time.slice(0, 2),
-				bytes: metadata.size,
-				mtime: metadata.mtime.toISOString(),
-				url: clipUrl(date, file),
-			}
-		})
-	)
-
-	return clips
+	const clipReads = files.map(async (file): Promise<ClipRecord> => {
+		const metadata = await stat(path.join(dir, file))
+		const time = clipTime(file)
+		return {
+			date,
+			file,
+			time,
+			hour: time.slice(0, 2),
+			bytes: metadata.size,
+			mtime: metadata.mtime.toISOString(),
+			url: clipUrl(date, file),
+		}
+	})
+	return await Promise.all(clipReads)
 }
 
-export async function getClipStream(date: string, file: string, range: string | null) {
+export async function getClipStream(
+	date: string,
+	file: string,
+	range: string | null,
+) {
 	const filePath = resolveClipPath(date, file)
 	if (!filePath) return null
 
@@ -124,7 +133,8 @@ export async function getClipStream(date: string, file: string, range: string | 
 
 	if (!range) {
 		headers.set("content-length", String(size))
-		return new Response(createReadStream(filePath) as unknown as BodyInit, { headers })
+		const body = createReadStream(filePath) as unknown as BodyInit
+		return new Response(body, { headers })
 	}
 
 	const match = /^bytes=(\d*)-(\d*)$/.exec(range)
@@ -136,7 +146,12 @@ export async function getClipStream(date: string, file: string, range: string | 
 	const start = match[1] ? Number(match[1]) : 0
 	const end = match[2] ? Number(match[2]) : size - 1
 
-	if (!Number.isSafeInteger(start) || !Number.isSafeInteger(end) || start > end || end >= size) {
+	if (
+		!Number.isSafeInteger(start) ||
+		!Number.isSafeInteger(end) ||
+		start > end ||
+		end >= size
+	) {
 		headers.set("content-range", `bytes */${size}`)
 		return new Response(null, { status: 416, headers })
 	}
@@ -144,8 +159,6 @@ export async function getClipStream(date: string, file: string, range: string | 
 	headers.set("content-length", String(end - start + 1))
 	headers.set("content-range", `bytes ${start}-${end}/${size}`)
 
-	return new Response(createReadStream(filePath, { start, end }) as unknown as BodyInit, {
-		status: 206,
-		headers,
-	})
+	const body = createReadStream(filePath, { start, end }) as unknown as BodyInit
+	return new Response(body, { status: 206, headers })
 }

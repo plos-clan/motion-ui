@@ -1,196 +1,185 @@
 <script lang="ts">
-	import ArchiveIcon from "lucide-svelte/icons/archive"
-	import CalendarIcon from "lucide-svelte/icons/calendar-days"
-	import CameraIcon from "lucide-svelte/icons/camera"
-	import ChevronLeftIcon from "lucide-svelte/icons/chevron-left"
-	import ChevronRightIcon from "lucide-svelte/icons/chevron-right"
-	import MaximizeIcon from "lucide-svelte/icons/maximize"
-	import MinimizeIcon from "lucide-svelte/icons/minimize"
-	import PlayIcon from "lucide-svelte/icons/play"
-	import SearchIcon from "lucide-svelte/icons/search"
-	import VideoIcon from "lucide-svelte/icons/video"
-	import XIcon from "lucide-svelte/icons/x"
-	import * as Badge from "$lib/components/ui/badge"
-	import * as Button from "$lib/components/ui/button"
-	import * as Input from "$lib/components/ui/input"
-	import * as ScrollArea from "$lib/components/ui/scroll-area"
-	import * as Tabs from "$lib/components/ui/tabs"
-	import type { PageData } from "./$types"
+import ArchiveIcon from "lucide-svelte/icons/archive"
+import CalendarIcon from "lucide-svelte/icons/calendar-days"
+import CameraIcon from "lucide-svelte/icons/camera"
+import ChevronLeftIcon from "lucide-svelte/icons/chevron-left"
+import ChevronRightIcon from "lucide-svelte/icons/chevron-right"
+import MaximizeIcon from "lucide-svelte/icons/maximize"
+import MinimizeIcon from "lucide-svelte/icons/minimize"
+import PlayIcon from "lucide-svelte/icons/play"
+import SearchIcon from "lucide-svelte/icons/search"
+import VideoIcon from "lucide-svelte/icons/video"
+import XIcon from "lucide-svelte/icons/x"
+import * as Badge from "$lib/components/ui/badge"
+import * as Button from "$lib/components/ui/button"
+import * as Input from "$lib/components/ui/input"
+import * as ScrollArea from "$lib/components/ui/scroll-area"
+import * as Tabs from "$lib/components/ui/tabs"
+import type { PageData } from "./$types"
 
-	type Clip = {
-		date: string
-		file: string
-		time: string
-		hour: string
-		bytes: number
-		mtime: string
-		url: string
-	}
+type Clip = {
+	date: string
+	file: string
+	time: string
+	hour: string
+	bytes: number
+	mtime: string
+	url: string
+}
 
-	type DaySort = "date" | "count"
+type DaySort = "date" | "count"
 
-	let { data }: { data: PageData } = $props()
-	let selectedDateOverride = $state<string | null>(null)
-	let clips = $state<Clip[]>([])
-	let selectedClip = $state<Clip | null>(null)
-	let archiveError = $state("")
-	let search = $state("")
-	let daySort = $state<DaySort>("date")
-	let activeTab = $state<"live" | "archive">("live")
-	let liveFrame = $state<HTMLDivElement | null>(null)
-	let isLiveFullscreen = $state(false)
-	let clipRequest = 0
+let { data }: { data: PageData } = $props()
+let selectedDateOverride = $state<string | null>(null)
+let clips = $state<Clip[]>([])
+let selectedClip = $state<Clip | null>(null)
+let archiveError = $state("")
+let search = $state("")
+let daySort = $state<DaySort>("date")
+let activeTab = $state<"live" | "archive">("live")
+let liveFrame = $state<HTMLDivElement | null>(null)
+let isLiveFullscreen = $state(false)
 
-	const days = $derived(data.days)
-	const selectedDate = $derived(
-		selectedDateOverride ?? data.selectedDate ?? data.days[0]?.date ?? ""
-	)
-	const totalClips = $derived(days.reduce((sum, day) => sum + day.count, 0))
-	const maxDayCount = $derived(Math.max(1, ...days.map((day) => day.count)))
-	const selectedDay = $derived(days.find((day) => day.date === selectedDate) ?? null)
-	const normalizedSearch = $derived(normalizeSearch(search))
-	const hasSearch = $derived(normalizedSearch.length > 0)
-	const visibleDays = $derived.by(() => {
-		const filtered = days.filter((day) => day.date.includes(normalizedSearch))
-		if (daySort === "date") return filtered
+const days = $derived(data.days)
+const selectedDate = $derived(
+	selectedDateOverride ?? data.selectedDate ?? data.days[0]?.date ?? "",
+)
+const totalClips = $derived(days.reduce((sum, day) => sum + day.count, 0))
+const maxDayCount = $derived(
+	days.reduce((max, day) => Math.max(max, day.count), 1),
+)
+const selectedDay = $derived(
+	days.find((day) => day.date === selectedDate) ?? null,
+)
+const normalizedSearch = $derived(normalizeSearch(search))
+const visibleDays = $derived.by(() => {
+	const filtered = normalizedSearch
+		? days.filter((day) => day.date.includes(normalizedSearch))
+		: days
+	if (daySort === "date") return filtered
 
-		return [...filtered].sort((left, right) => {
-			const countOrder = right.count - left.count
-			if (countOrder !== 0) return countOrder
-			return right.date.localeCompare(left.date)
-		})
+	return [...filtered].sort((left, right) => {
+		return right.count - left.count || right.date.localeCompare(left.date)
 	})
-	const groupedClips = $derived.by(() => {
-		const groups = new Map<string, Clip[]>()
-		for (const clip of clips) {
-			const group = groups.get(clip.hour)
-			if (group) group.push(clip)
-			else groups.set(clip.hour, [clip])
+})
+const groupedClips = $derived.by(() => {
+	const groups = new Map<string, Clip[]>()
+	for (const clip of clips) {
+		let group = groups.get(clip.hour)
+		if (!group) groups.set(clip.hour, (group = []))
+		group.push(clip)
+	}
+	return Array.from(groups, ([hour, clips]) => ({ hour, clips }))
+})
+const selectedClipIndex = $derived.by(() => {
+	const file = selectedClip?.file
+	return file ? clips.findIndex((clip) => clip.file === file) : -1
+})
+
+const formatDate = (date: string) => date.replaceAll("-", ".")
+const formatBytes = (bytes: number) => {
+	if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`
+	return `${(bytes / 1024 / 1024).toFixed(1)} MB`
+}
+
+function normalizeSearch(value: string) {
+	const text = value.trim().replace(/\s+/g, " ")
+	if (!text) return ""
+
+	const parts = text.split(" ")
+	if (!parts.every((part) => /^\d+$/.test(part))) return text
+
+	const [year, month, day] = parts
+	if (parts.length === 1) return year
+	if (year.length !== 4 || !month) return text
+
+	const monthNumber = Number(month)
+	if (monthNumber < 1 || monthNumber > 12) return text
+
+	const normalizedMonth = month.padStart(2, "0")
+	if (parts.length === 2) return `${year}-${normalizedMonth}`
+	if (!day) return text
+
+	const dayNumber = Number(day)
+	if (dayNumber < 1 || dayNumber > 31) return text
+
+	return `${year}-${normalizedMonth}-${day.padStart(2, "0")}`
+}
+
+const pickDay = (date: string) => {
+	selectedDateOverride = date
+	activeTab = "archive"
+}
+
+const playOffset = (offset: number) => {
+	const next = clips[selectedClipIndex + offset]
+	if (next) selectedClip = next
+}
+
+const toggleLiveFullscreen = async () => {
+	const target = liveFrame
+	if (typeof document === "undefined" || !target) return
+
+	try {
+		if (document.fullscreenElement === target) {
+			await document.exitFullscreen()
+		} else {
+			await target.requestFullscreen()
 		}
-		return [...groups.entries()].map(([hour, items]) => ({ hour, clips: items }))
-	})
-	const selectedClipIndex = $derived(
-		selectedClip ? clips.findIndex((clip) => clip.file === selectedClip?.file) : -1
-	)
-	const playerSrc = $derived(selectedClip ? `${selectedClip.url}?v=${selectedClip.mtime}` : "")
+	} catch {
+		isLiveFullscreen = false
+	}
+}
 
-	function formatDate(date: string) {
-		const [year, month, day] = date.split("-")
-		return `${year}.${month}.${day}`
+const loadClips = async (date: string, signal: AbortSignal) => {
+	archiveError = ""
+
+	try {
+		const response = await fetch(`/api/archive/day/${date}`, { signal })
+		if (!response.ok) throw new Error("clips")
+		const nextClips: Clip[] = (await response.json()).clips
+		if (signal.aborted) return
+		clips = nextClips
+		selectedClip = nextClips[0] ?? null
+	} catch {
+		if (signal.aborted) return
+		clips = []
+		selectedClip = null
+		archiveError = "无法读取当天片段"
+	}
+}
+
+$effect(() => {
+	if (!selectedDate) {
+		clips = []
+		selectedClip = null
+		return
+	}
+	const controller = new AbortController()
+	loadClips(selectedDate, controller.signal)
+	return () => controller.abort()
+})
+
+$effect(() => {
+	if (!normalizedSearch) return
+	const exactDay = days.find((day) => day.date === normalizedSearch)
+	if (exactDay && exactDay.date !== selectedDate) {
+		selectedDateOverride = exactDay.date
+	}
+})
+
+$effect(() => {
+	const target = liveFrame
+	if (typeof document === "undefined" || !target) return
+
+	const syncFullscreen = () => {
+		isLiveFullscreen = document.fullscreenElement === target
 	}
 
-	function formatBytes(bytes: number) {
-		if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`
-		return `${(bytes / 1024 / 1024).toFixed(1)} MB`
-	}
-
-	function normalizeSearch(value: string) {
-		const text = value.trim().replace(/\s+/g, " ")
-		if (!text) return ""
-
-		const parts = text.split(" ")
-		if (!parts.every((part) => /^\d+$/.test(part))) return text
-
-		const [year, month, day] = parts
-		if (parts.length === 1) return year
-		if (year.length !== 4 || !month) return text
-
-		const monthNumber = Number(month)
-		if (monthNumber < 1 || monthNumber > 12) return text
-
-		const normalizedMonth = month.padStart(2, "0")
-		if (parts.length === 2) return `${year}-${normalizedMonth}`
-		if (!day) return text
-
-		const dayNumber = Number(day)
-		if (dayNumber < 1 || dayNumber > 31) return text
-
-		return `${year}-${normalizedMonth}-${day.padStart(2, "0")}`
-	}
-
-	function clearSearch() {
-		search = ""
-	}
-
-	function toggleDaySort() {
-		daySort = daySort === "date" ? "count" : "date"
-	}
-
-	function pickDay(date: string) {
-		selectedDateOverride = date
-		activeTab = "archive"
-	}
-
-	function pickClip(clip: Clip) {
-		selectedClip = clip
-	}
-
-	function playOffset(offset: number) {
-		const next = clips[selectedClipIndex + offset]
-		if (next) selectedClip = next
-	}
-
-	async function toggleLiveFullscreen() {
-		if (typeof document === "undefined" || !liveFrame) return
-
-		try {
-			if (document.fullscreenElement === liveFrame) {
-				await document.exitFullscreen()
-			} else {
-				await liveFrame.requestFullscreen()
-			}
-		} catch {
-			isLiveFullscreen = false
-		}
-	}
-
-	async function loadClips(date: string) {
-		if (!date) {
-			clips = []
-			selectedClip = null
-			return
-		}
-
-		const request = ++clipRequest
-		archiveError = ""
-
-		try {
-			const response = await fetch(`/api/archive/day/${date}`)
-			if (!response.ok) throw new Error("clips")
-			const nextClips: Clip[] = (await response.json()).clips
-			if (request !== clipRequest) return
-			clips = nextClips
-			selectedClip = nextClips[0] ?? null
-		} catch {
-			if (request !== clipRequest) return
-			clips = []
-			selectedClip = null
-			archiveError = "无法读取当天片段"
-		}
-	}
-
-	$effect(() => {
-		loadClips(selectedDate)
-	})
-
-	$effect(() => {
-		if (!normalizedSearch) return
-		const exactDay = days.find((day) => day.date === normalizedSearch)
-		if (exactDay && exactDay.date !== selectedDate) selectedDateOverride = exactDay.date
-	})
-
-	$effect(() => {
-		const target = liveFrame
-		if (typeof document === "undefined" || !target) return
-
-		const syncFullscreen = () => {
-			isLiveFullscreen = document.fullscreenElement === target
-		}
-
-		syncFullscreen()
-		document.addEventListener("fullscreenchange", syncFullscreen)
-		return () => document.removeEventListener("fullscreenchange", syncFullscreen)
-	})
+	syncFullscreen()
+	document.addEventListener("fullscreenchange", syncFullscreen)
+	return () => document.removeEventListener("fullscreenchange", syncFullscreen)
+})
 </script>
 
 <main class="min-h-screen bg-background text-foreground lg:h-dvh lg:overflow-hidden">
@@ -285,7 +274,7 @@
 								size="xs"
 								aria-label={daySort === "date" ? "按片段数量排序日期" : "按日期排序日期"}
 								aria-pressed={daySort === "count"}
-								onclick={toggleDaySort}
+								onclick={() => (daySort = daySort === "date" ? "count" : "date")}
 							>
 								{daySort === "date" ? "按日期" : "按数量"}
 							</Button.Button>
@@ -301,13 +290,13 @@
 								class="pl-8 pr-8"
 								placeholder="筛选日期：2026 05 03"
 							/>
-							{#if hasSearch}
+							{#if normalizedSearch}
 								<Button.Button
 									variant="ghost"
 									size="icon-xs"
 									class="absolute right-1 top-1/2 -translate-y-1/2"
 									aria-label="清空日期筛选"
-									onclick={clearSearch}
+									onclick={() => (search = "")}
 								>
 									<XIcon class="size-3.5" />
 								</Button.Button>
@@ -414,7 +403,7 @@
 						<div class="bg-black lg:min-h-0 lg:flex-1">
 							{#if selectedClip}
 								<video
-									src={playerSrc}
+									src={`${selectedClip.url}?v=${selectedClip.mtime}`}
 									controls
 									muted
 									playsinline
@@ -463,9 +452,9 @@
 														"rounded-lg border p-2 text-left text-sm transition",
 														selectedClip?.file === clip.file
 															? "border-primary bg-primary text-primary-foreground"
-															: "border-border bg-background hover:bg-muted",
+														: "border-border bg-background hover:bg-muted",
 													]}
-													onclick={() => pickClip(clip)}
+													onclick={() => (selectedClip = clip)}
 												>
 													<div class="font-medium">{clip.time}</div>
 													<div

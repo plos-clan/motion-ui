@@ -11,4 +11,9 @@ export function cn(...inputs: ClassValue[]) {
 	return twMerge(clsx(inputs))
 }
 
-export type { WithoutChild, WithoutChildren, WithoutChildrenOrChild, WithElementRef }
+export type {
+	WithoutChild,
+	WithoutChildren,
+	WithoutChildrenOrChild,
+	WithElementRef,
+}
