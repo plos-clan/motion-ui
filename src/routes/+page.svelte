@@ -1,196 +1,196 @@
 <script lang="ts">
-	import ArchiveIcon from "lucide-svelte/icons/archive";
-	import CalendarIcon from "lucide-svelte/icons/calendar-days";
-	import CameraIcon from "lucide-svelte/icons/camera";
-	import ChevronLeftIcon from "lucide-svelte/icons/chevron-left";
-	import ChevronRightIcon from "lucide-svelte/icons/chevron-right";
-	import MaximizeIcon from "lucide-svelte/icons/maximize";
-	import MinimizeIcon from "lucide-svelte/icons/minimize";
-	import PlayIcon from "lucide-svelte/icons/play";
-	import SearchIcon from "lucide-svelte/icons/search";
-	import VideoIcon from "lucide-svelte/icons/video";
-	import XIcon from "lucide-svelte/icons/x";
-	import * as Badge from "$lib/components/ui/badge";
-	import * as Button from "$lib/components/ui/button";
-	import * as Input from "$lib/components/ui/input";
-	import * as ScrollArea from "$lib/components/ui/scroll-area";
-	import * as Tabs from "$lib/components/ui/tabs";
-	import type { PageData } from "./$types";
+	import ArchiveIcon from "lucide-svelte/icons/archive"
+	import CalendarIcon from "lucide-svelte/icons/calendar-days"
+	import CameraIcon from "lucide-svelte/icons/camera"
+	import ChevronLeftIcon from "lucide-svelte/icons/chevron-left"
+	import ChevronRightIcon from "lucide-svelte/icons/chevron-right"
+	import MaximizeIcon from "lucide-svelte/icons/maximize"
+	import MinimizeIcon from "lucide-svelte/icons/minimize"
+	import PlayIcon from "lucide-svelte/icons/play"
+	import SearchIcon from "lucide-svelte/icons/search"
+	import VideoIcon from "lucide-svelte/icons/video"
+	import XIcon from "lucide-svelte/icons/x"
+	import * as Badge from "$lib/components/ui/badge"
+	import * as Button from "$lib/components/ui/button"
+	import * as Input from "$lib/components/ui/input"
+	import * as ScrollArea from "$lib/components/ui/scroll-area"
+	import * as Tabs from "$lib/components/ui/tabs"
+	import type { PageData } from "./$types"
 
 	type Clip = {
-		date: string;
-		file: string;
-		time: string;
-		hour: string;
-		bytes: number;
-		mtime: string;
-		url: string;
-	};
+		date: string
+		file: string
+		time: string
+		hour: string
+		bytes: number
+		mtime: string
+		url: string
+	}
 
-	type DaySort = "date" | "count";
+	type DaySort = "date" | "count"
 
-	let { data }: { data: PageData } = $props();
-	let selectedDateOverride = $state<string | null>(null);
-	let clips = $state<Clip[]>([]);
-	let selectedClip = $state<Clip | null>(null);
-	let archiveError = $state("");
-	let search = $state("");
-	let daySort = $state<DaySort>("date");
-	let activeTab = $state<"live" | "archive">("live");
-	let liveFrame = $state<HTMLDivElement | null>(null);
-	let isLiveFullscreen = $state(false);
-	let clipRequest = 0;
+	let { data }: { data: PageData } = $props()
+	let selectedDateOverride = $state<string | null>(null)
+	let clips = $state<Clip[]>([])
+	let selectedClip = $state<Clip | null>(null)
+	let archiveError = $state("")
+	let search = $state("")
+	let daySort = $state<DaySort>("date")
+	let activeTab = $state<"live" | "archive">("live")
+	let liveFrame = $state<HTMLDivElement | null>(null)
+	let isLiveFullscreen = $state(false)
+	let clipRequest = 0
 
-	const days = $derived(data.days);
+	const days = $derived(data.days)
 	const selectedDate = $derived(
 		selectedDateOverride ?? data.selectedDate ?? data.days[0]?.date ?? ""
-	);
-	const totalClips = $derived(days.reduce((sum, day) => sum + day.count, 0));
-	const maxDayCount = $derived(Math.max(1, ...days.map((day) => day.count)));
-	const selectedDay = $derived(days.find((day) => day.date === selectedDate) ?? null);
-	const normalizedSearch = $derived(normalizeSearch(search));
-	const hasSearch = $derived(normalizedSearch.length > 0);
+	)
+	const totalClips = $derived(days.reduce((sum, day) => sum + day.count, 0))
+	const maxDayCount = $derived(Math.max(1, ...days.map((day) => day.count)))
+	const selectedDay = $derived(days.find((day) => day.date === selectedDate) ?? null)
+	const normalizedSearch = $derived(normalizeSearch(search))
+	const hasSearch = $derived(normalizedSearch.length > 0)
 	const visibleDays = $derived.by(() => {
-		const filtered = days.filter((day) => day.date.includes(normalizedSearch));
-		if (daySort === "date") return filtered;
+		const filtered = days.filter((day) => day.date.includes(normalizedSearch))
+		if (daySort === "date") return filtered
 
 		return [...filtered].sort((left, right) => {
-			const countOrder = right.count - left.count;
-			if (countOrder !== 0) return countOrder;
-			return right.date.localeCompare(left.date);
-		});
-	});
+			const countOrder = right.count - left.count
+			if (countOrder !== 0) return countOrder
+			return right.date.localeCompare(left.date)
+		})
+	})
 	const groupedClips = $derived.by(() => {
-		const groups = new Map<string, Clip[]>();
+		const groups = new Map<string, Clip[]>()
 		for (const clip of clips) {
-			const group = groups.get(clip.hour);
-			if (group) group.push(clip);
-			else groups.set(clip.hour, [clip]);
+			const group = groups.get(clip.hour)
+			if (group) group.push(clip)
+			else groups.set(clip.hour, [clip])
 		}
-		return [...groups.entries()].map(([hour, items]) => ({ hour, clips: items }));
-	});
+		return [...groups.entries()].map(([hour, items]) => ({ hour, clips: items }))
+	})
 	const selectedClipIndex = $derived(
 		selectedClip ? clips.findIndex((clip) => clip.file === selectedClip?.file) : -1
-	);
-	const playerSrc = $derived(selectedClip ? `${selectedClip.url}?v=${selectedClip.mtime}` : "");
+	)
+	const playerSrc = $derived(selectedClip ? `${selectedClip.url}?v=${selectedClip.mtime}` : "")
 
 	function formatDate(date: string) {
-		const [year, month, day] = date.split("-");
-		return `${year}.${month}.${day}`;
+		const [year, month, day] = date.split("-")
+		return `${year}.${month}.${day}`
 	}
 
 	function formatBytes(bytes: number) {
-		if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
-		return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+		if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`
+		return `${(bytes / 1024 / 1024).toFixed(1)} MB`
 	}
 
 	function normalizeSearch(value: string) {
-		const text = value.trim().replace(/\s+/g, " ");
-		if (!text) return "";
+		const text = value.trim().replace(/\s+/g, " ")
+		if (!text) return ""
 
-		const parts = text.split(" ");
-		if (!parts.every((part) => /^\d+$/.test(part))) return text;
+		const parts = text.split(" ")
+		if (!parts.every((part) => /^\d+$/.test(part))) return text
 
-		const [year, month, day] = parts;
-		if (parts.length === 1) return year;
-		if (year.length !== 4 || !month) return text;
+		const [year, month, day] = parts
+		if (parts.length === 1) return year
+		if (year.length !== 4 || !month) return text
 
-		const monthNumber = Number(month);
-		if (monthNumber < 1 || monthNumber > 12) return text;
+		const monthNumber = Number(month)
+		if (monthNumber < 1 || monthNumber > 12) return text
 
-		const normalizedMonth = month.padStart(2, "0");
-		if (parts.length === 2) return `${year}-${normalizedMonth}`;
-		if (!day) return text;
+		const normalizedMonth = month.padStart(2, "0")
+		if (parts.length === 2) return `${year}-${normalizedMonth}`
+		if (!day) return text
 
-		const dayNumber = Number(day);
-		if (dayNumber < 1 || dayNumber > 31) return text;
+		const dayNumber = Number(day)
+		if (dayNumber < 1 || dayNumber > 31) return text
 
-		return `${year}-${normalizedMonth}-${day.padStart(2, "0")}`;
+		return `${year}-${normalizedMonth}-${day.padStart(2, "0")}`
 	}
 
 	function clearSearch() {
-		search = "";
+		search = ""
 	}
 
 	function toggleDaySort() {
-		daySort = daySort === "date" ? "count" : "date";
+		daySort = daySort === "date" ? "count" : "date"
 	}
 
 	function pickDay(date: string) {
-		selectedDateOverride = date;
-		activeTab = "archive";
+		selectedDateOverride = date
+		activeTab = "archive"
 	}
 
 	function pickClip(clip: Clip) {
-		selectedClip = clip;
+		selectedClip = clip
 	}
 
 	function playOffset(offset: number) {
-		const next = clips[selectedClipIndex + offset];
-		if (next) selectedClip = next;
+		const next = clips[selectedClipIndex + offset]
+		if (next) selectedClip = next
 	}
 
 	async function toggleLiveFullscreen() {
-		if (typeof document === "undefined" || !liveFrame) return;
+		if (typeof document === "undefined" || !liveFrame) return
 
 		try {
 			if (document.fullscreenElement === liveFrame) {
-				await document.exitFullscreen();
+				await document.exitFullscreen()
 			} else {
-				await liveFrame.requestFullscreen();
+				await liveFrame.requestFullscreen()
 			}
 		} catch {
-			isLiveFullscreen = false;
+			isLiveFullscreen = false
 		}
 	}
 
 	async function loadClips(date: string) {
 		if (!date) {
-			clips = [];
-			selectedClip = null;
-			return;
+			clips = []
+			selectedClip = null
+			return
 		}
 
-		const request = ++clipRequest;
-		archiveError = "";
+		const request = ++clipRequest
+		archiveError = ""
 
 		try {
-			const response = await fetch(`/api/archive/day/${date}`);
-			if (!response.ok) throw new Error("clips");
-			const nextClips: Clip[] = (await response.json()).clips;
-			if (request !== clipRequest) return;
-			clips = nextClips;
-			selectedClip = nextClips[0] ?? null;
+			const response = await fetch(`/api/archive/day/${date}`)
+			if (!response.ok) throw new Error("clips")
+			const nextClips: Clip[] = (await response.json()).clips
+			if (request !== clipRequest) return
+			clips = nextClips
+			selectedClip = nextClips[0] ?? null
 		} catch {
-			if (request !== clipRequest) return;
-			clips = [];
-			selectedClip = null;
-			archiveError = "无法读取当天片段";
+			if (request !== clipRequest) return
+			clips = []
+			selectedClip = null
+			archiveError = "无法读取当天片段"
 		}
 	}
 
 	$effect(() => {
-		loadClips(selectedDate);
-	});
+		loadClips(selectedDate)
+	})
 
 	$effect(() => {
-		if (!normalizedSearch) return;
-		const exactDay = days.find((day) => day.date === normalizedSearch);
-		if (exactDay && exactDay.date !== selectedDate) selectedDateOverride = exactDay.date;
-	});
+		if (!normalizedSearch) return
+		const exactDay = days.find((day) => day.date === normalizedSearch)
+		if (exactDay && exactDay.date !== selectedDate) selectedDateOverride = exactDay.date
+	})
 
 	$effect(() => {
-		const target = liveFrame;
-		if (typeof document === "undefined" || !target) return;
+		const target = liveFrame
+		if (typeof document === "undefined" || !target) return
 
 		const syncFullscreen = () => {
-			isLiveFullscreen = document.fullscreenElement === target;
-		};
+			isLiveFullscreen = document.fullscreenElement === target
+		}
 
-		syncFullscreen();
-		document.addEventListener("fullscreenchange", syncFullscreen);
-		return () => document.removeEventListener("fullscreenchange", syncFullscreen);
-	});
+		syncFullscreen()
+		document.addEventListener("fullscreenchange", syncFullscreen)
+		return () => document.removeEventListener("fullscreenchange", syncFullscreen)
+	})
 </script>
 
 <main class="min-h-screen bg-background text-foreground lg:h-dvh lg:overflow-hidden">

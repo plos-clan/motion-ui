@@ -1,5 +1,5 @@
 <script lang="ts" module>
-	import { tv, type VariantProps } from "tailwind-variants/lite";
+	import { tv, type VariantProps } from "tailwind-variants/lite"
 
 	export const tabsListVariants = tv({
 		base: "rounded-lg p-[3px] group-data-horizontal/tabs:h-8 data-[variant=line]:rounded-none group/tabs-list text-muted-foreground inline-flex w-fit items-center justify-center group-data-[orientation=vertical]/tabs:h-fit group-data-[orientation=vertical]/tabs:flex-col",
@@ -12,14 +12,14 @@
 		defaultVariants: {
 			variant: "default",
 		},
-	});
+	})
 
-	export type TabsListVariant = VariantProps<typeof tabsListVariants>["variant"];
+	export type TabsListVariant = VariantProps<typeof tabsListVariants>["variant"]
 </script>
 
 <script lang="ts">
-	import { Tabs as TabsPrimitive } from "bits-ui";
-	import { cn } from "$lib/utils.js";
+	import { Tabs as TabsPrimitive } from "bits-ui"
+	import { cn } from "$lib/utils.js"
 
 	let {
 		ref = $bindable(null),
@@ -27,8 +27,8 @@
 		class: className,
 		...restProps
 	}: TabsPrimitive.ListProps & {
-		variant?: TabsListVariant;
-	} = $props();
+		variant?: TabsListVariant
+	} = $props()
 </script>
 
 <TabsPrimitive.List

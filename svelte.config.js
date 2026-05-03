@@ -1,4 +1,4 @@
-import adapter from '@eslym/sveltekit-adapter-bun';
+import adapter from '@eslym/sveltekit-adapter-bun'
 
 /** @type {import('@sveltejs/kit').Config} */
 const config = {
@@ -14,6 +14,6 @@ const config = {
 			sourceMap: false
 		})
 	}
-};
+}
 
-export default config;
+export default config
