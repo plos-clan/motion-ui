@@ -24,7 +24,7 @@ bun run dev
 
 ```sh
 bun run build
-HOST=127.0.0.1 PORT=3000 bun run start
+HTTP_HOST=127.0.0.1 HTTP_PORT=3000 bun run start
 ```
 
 An experimental single binary can be produced after `bun run build`:

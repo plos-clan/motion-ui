@@ -8,6 +8,8 @@ const config = {
 	},
 	kit: {
 		adapter: adapter({
+			bundler: 'bun',
+			bunBuildMinify: true,
 			precompress: false,
 			sourceMap: false
 		})
