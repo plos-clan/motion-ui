@@ -291,12 +291,9 @@
 					class="order-2 flex h-[340px] flex-col rounded-lg border border-border bg-card shadow-sm lg:order-1 lg:h-auto lg:min-h-0"
 				>
 					<div class="shrink-0 border-b border-border p-3">
-						<div class="mb-2 flex items-center justify-between gap-3">
-							<div class="flex items-center gap-2 text-sm font-semibold">
-								<CalendarIcon class="size-4" />
-								日期
-							</div>
-							<Badge.Badge variant="outline">{filteredDays.length} 天</Badge.Badge>
+						<div class="mb-2 flex items-center gap-2 text-sm font-semibold">
+							<CalendarIcon class="size-4" />
+							日期
 						</div>
 						<div class="relative">
 							<SearchIcon
