@@ -2,7 +2,6 @@
 	import ActivityIcon from "lucide-svelte/icons/activity";
 	import ArchiveIcon from "lucide-svelte/icons/archive";
 	import CalendarIcon from "lucide-svelte/icons/calendar-days";
-	import CameraIcon from "lucide-svelte/icons/camera";
 	import ChevronLeftIcon from "lucide-svelte/icons/chevron-left";
 	import ChevronRightIcon from "lucide-svelte/icons/chevron-right";
 	import MoonIcon from "lucide-svelte/icons/moon";
@@ -187,20 +186,9 @@
 		class="mx-auto flex min-h-screen w-full max-w-[1680px] flex-col gap-3 px-3 py-3 sm:px-5 lg:h-full lg:min-h-0 lg:px-6"
 	>
 		<header
-			class="grid shrink-0 gap-3 border-b border-border/70 pb-3 lg:grid-cols-[minmax(0,1fr)_320px_minmax(0,1fr)] lg:items-center"
+			class="flex shrink-0 items-center justify-between gap-3 border-b border-border/70 pb-3"
 		>
-			<div class="flex min-w-0 items-center gap-3">
-				<div
-					class="flex size-10 shrink-0 items-center justify-center rounded-lg border border-border bg-card shadow-sm"
-				>
-					<CameraIcon class="size-5" />
-				</div>
-				<div class="min-w-0">
-					<h1 class="truncate text-xl font-semibold tracking-normal">Motion UI</h1>
-				</div>
-			</div>
-
-			<Tabs.List class="grid w-full grid-cols-2 lg:w-[320px]">
+			<Tabs.List variant="line" class="h-8">
 				<Tabs.Trigger value="live" class="gap-2">
 					<ActivityIcon class="size-4" />
 					实时画面
@@ -211,12 +199,12 @@
 				</Tabs.Trigger>
 			</Tabs.List>
 
-			<div class="flex items-center gap-2 lg:justify-end">
-				<Badge.Badge variant="outline" class="h-8 rounded-lg px-3">
+			<div class="flex shrink-0 items-center gap-2">
+				<Badge.Badge variant="outline" class="hidden h-8 rounded-lg px-3 sm:inline-flex">
 					<ArchiveIcon class="size-3.5" />
 					{days.length} 天
 				</Badge.Badge>
-				<Badge.Badge variant="secondary" class="h-8 rounded-lg px-3">
+				<Badge.Badge variant="secondary" class="hidden h-8 rounded-lg px-3 sm:inline-flex">
 					<VideoIcon class="size-3.5" />
 					{totalClips} 段
 				</Badge.Badge>
