@@ -5,7 +5,7 @@
 	"type": "module",
 	"scripts": {
 		"dev": "vite dev",
-		"build": "vite build",
+		"build": "bun --bun vite build",
 		"preview": "vite preview",
 		"prepare": "svelte-kit sync || echo ''",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
@@ -13,6 +13,7 @@
 		"compile": "bun build --compile ./build/index.js --outfile motion-ui"
 	},
 	"devDependencies": {
+		"@eslym/sveltekit-adapter-bun": "^2.1.1",
 		"@sveltejs/kit": "^2.57.0",
 		"@sveltejs/vite-plugin-svelte": "^7.0.0",
 		"@tailwindcss/vite": "^4.2.2",
@@ -23,7 +24,6 @@
 		"lucide-svelte": "^1.0.1",
 		"shadcn-svelte": "^1.2.7",
 		"svelte": "^5.55.2",
-		"svelte-adapter-bun": "^1.0.1",
 		"svelte-check": "^4.4.6",
 		"tailwind-merge": "^3.5.0",
 		"tailwind-variants": "^3.2.2",

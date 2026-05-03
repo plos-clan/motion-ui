@@ -1,4 +1,4 @@
-import adapter from 'svelte-adapter-bun';
+import adapter from '@eslym/sveltekit-adapter-bun';
 
 /** @type {import('@sveltejs/kit').Config} */
 const config = {
@@ -8,7 +8,8 @@ const config = {
 	},
 	kit: {
 		adapter: adapter({
-			precompress: false
+			precompress: false,
+			sourceMap: false
 		})
 	}
 };
