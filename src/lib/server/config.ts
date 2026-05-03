@@ -7,9 +7,9 @@ function readEnv(name: string) {
 
 export const motionConfig = {
 	get streamUrl() {
-		return readEnv("MOTION_STREAM_URL");
+		return readEnv("LIVE_URL");
 	},
 	get videoDir() {
-		return readEnv("MOTION_VIDEO_DIR");
+		return readEnv("ARCHIVE_DIR");
 	},
 };
