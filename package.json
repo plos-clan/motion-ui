@@ -8,7 +8,7 @@
 		"build": "bun --bun vite build",
 		"preview": "vite preview",
 		"prepare": "svelte-kit sync || echo ''",
-		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+		"check": "svelte-check --tsconfig ./tsconfig.json",
 		"start": "bun ./build/index.js",
 		"compile": "bun build --compile ./build/index.js --outfile motion-ui"
 	},
