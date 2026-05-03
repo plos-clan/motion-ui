@@ -32,21 +32,12 @@ type DayCache = {
 
 let dayCache: DayCache | null = null;
 
-function isDay(value: string) {
-	return DAY_PATTERN.test(value);
-}
+const isDay = (value: string) => DAY_PATTERN.test(value)
+const isClip = (value: string) => CLIP_PATTERN.test(value)
 
-function isClip(value: string) {
-	return CLIP_PATTERN.test(value);
-}
-
-function clipTime(file: string) {
-	return file.slice(0, -4).replaceAll("-", ":");
-}
-
-function clipUrl(date: string, file: string) {
-	return `/api/video/${encodeURIComponent(date)}/${encodeURIComponent(file)}`;
-}
+const clipTime = (file: string) => file.slice(0, -4).replaceAll("-", ":")
+const clipUrl = (date: string, file: string) =>
+	`/api/video/${encodeURIComponent(date)}/${encodeURIComponent(file)}`
 
 function resolveClipPath(date: string, file: string) {
 	if (!isDay(date) || !isClip(file)) return null;
