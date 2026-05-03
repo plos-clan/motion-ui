@@ -6,10 +6,8 @@
 	import ChevronRightIcon from "lucide-svelte/icons/chevron-right";
 	import MaximizeIcon from "lucide-svelte/icons/maximize";
 	import MinimizeIcon from "lucide-svelte/icons/minimize";
-	import MoonIcon from "lucide-svelte/icons/moon";
 	import PlayIcon from "lucide-svelte/icons/play";
 	import SearchIcon from "lucide-svelte/icons/search";
-	import SunIcon from "lucide-svelte/icons/sun";
 	import VideoIcon from "lucide-svelte/icons/video";
 	import XIcon from "lucide-svelte/icons/x";
 	import * as Badge from "$lib/components/ui/badge";
@@ -29,8 +27,6 @@
 		url: string;
 	};
 
-	type Mode = "light" | "dark";
-
 	let { data }: { data: PageData } = $props();
 	let selectedDateOverride = $state<string | null>(null);
 	let clips = $state<Clip[]>([]);
@@ -38,7 +34,6 @@
 	let archiveError = $state("");
 	let search = $state("");
 	let activeTab = $state<"live" | "archive">("live");
-	let theme = $state<Mode>("light");
 	let liveFrame = $state<HTMLDivElement | null>(null);
 	let isLiveFullscreen = $state(false);
 	let clipRequest = 0;
@@ -121,17 +116,6 @@
 		if (next) selectedClip = next;
 	}
 
-	function setTheme(mode: Mode) {
-		theme = mode;
-		if (typeof document === "undefined") return;
-		document.documentElement.classList.toggle("dark", mode === "dark");
-		document.documentElement.classList.toggle("light", mode === "light");
-	}
-
-	function toggleTheme() {
-		setTheme(theme === "dark" ? "light" : "dark");
-	}
-
 	async function toggleLiveFullscreen() {
 		if (typeof document === "undefined" || !liveFrame) return;
 
@@ -179,24 +163,6 @@
 		if (!normalizedSearch) return;
 		const exactDay = days.find((day) => day.date === normalizedSearch);
 		if (exactDay && exactDay.date !== selectedDate) selectedDateOverride = exactDay.date;
-	});
-
-	$effect(() => {
-		if (typeof window === "undefined") return;
-		const systemTheme = window.matchMedia("(prefers-color-scheme: dark)");
-		const syncTheme = () => {
-			if (document.documentElement.classList.contains("dark")) {
-				theme = "dark";
-			} else if (document.documentElement.classList.contains("light")) {
-				theme = "light";
-			} else {
-				theme = systemTheme.matches ? "dark" : "light";
-			}
-		};
-
-		syncTheme();
-		systemTheme.addEventListener("change", syncTheme);
-		return () => systemTheme.removeEventListener("change", syncTheme);
 	});
 
 	$effect(() => {
@@ -252,13 +218,6 @@
 					<VideoIcon class="size-3.5" />
 					{totalClips} 段
 				</Badge.Badge>
-				<Button.Button variant="outline" size="icon" aria-label="切换深色模式" onclick={toggleTheme}>
-					{#if theme === "dark"}
-						<SunIcon class="size-4" />
-					{:else}
-						<MoonIcon class="size-4" />
-					{/if}
-				</Button.Button>
 			</div>
 		</header>
 

@@ -1,18 +1,6 @@
 @import "tailwindcss";
 @import "shadcn-svelte/tailwind.css";
 
-@custom-variant dark {
-	&:is(.dark *) {
-		@slot;
-	}
-
-	@media (prefers-color-scheme: dark) {
-		&:is(:root:not(.light) *) {
-			@slot;
-		}
-	}
-}
-
 :root {
 	color-scheme: light dark;
 	--background: light-dark(oklch(1 0 0), oklch(0.145 0 0));
@@ -35,14 +23,6 @@
 	--ring: light-dark(oklch(0.708 0 0), oklch(0.556 0 0));
 	--radius: 0.5rem;
 	--radius-md: 0.5rem;
-}
-
-.light {
-	color-scheme: light;
-}
-
-.dark {
-	color-scheme: dark;
 }
 
 @theme inline {
