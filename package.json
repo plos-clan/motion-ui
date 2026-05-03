@@ -19,7 +19,6 @@
 		"@tailwindcss/vite": "^4.2.2",
 		"@types/node": "^24",
 		"bits-ui": "^2.18.1",
-		"class-variance-authority": "^0.7.1",
 		"clsx": "^2.1.1",
 		"lucide-svelte": "^1.0.1",
 		"shadcn-svelte": "^1.2.7",
