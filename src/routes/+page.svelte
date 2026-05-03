@@ -4,6 +4,8 @@
 	import CameraIcon from "lucide-svelte/icons/camera";
 	import ChevronLeftIcon from "lucide-svelte/icons/chevron-left";
 	import ChevronRightIcon from "lucide-svelte/icons/chevron-right";
+	import MaximizeIcon from "lucide-svelte/icons/maximize";
+	import MinimizeIcon from "lucide-svelte/icons/minimize";
 	import MoonIcon from "lucide-svelte/icons/moon";
 	import PlayIcon from "lucide-svelte/icons/play";
 	import SearchIcon from "lucide-svelte/icons/search";
@@ -37,6 +39,8 @@
 	let search = $state("");
 	let activeTab = $state<"live" | "archive">("live");
 	let theme = $state<Mode>("light");
+	let liveFrame = $state<HTMLDivElement | null>(null);
+	let isLiveFullscreen = $state(false);
 	let clipRequest = 0;
 
 	const days = $derived(data.days);
@@ -76,36 +80,27 @@
 	}
 
 	function normalizeSearch(value: string) {
-		const text = value.trim().replace(/[./\s_]+/g, "-").replace(/-+/g, "-");
-		const parts = text.split("-").filter(Boolean);
+		const text = value.trim().replace(/\s+/g, " ");
+		if (!text) return "";
 
-		if (parts.length >= 2 && parts.every((part) => /^\d+$/.test(part))) {
-			const padded = parts.map((part, index) =>
-				index === 0 && part.length === 4 ? part : part.padStart(2, "0")
-			);
-			if (padded[0]?.length === 4) return padded.slice(0, 3).join("-");
-			return padded.slice(0, 2).join("-");
-		}
+		const parts = text.split(" ");
+		if (!parts.every((part) => /^\d+$/.test(part))) return text;
 
-		const digits = text.replaceAll("-", "");
+		const [year, month, day] = parts;
+		if (parts.length === 1) return year;
+		if (year.length !== 4 || !month) return text;
 
-		if (/^\d{8}$/.test(digits)) {
-			return `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6)}`;
-		}
+		const monthNumber = Number(month);
+		if (monthNumber < 1 || monthNumber > 12) return text;
 
-		if (/^\d{6}$/.test(digits)) {
-			return `${digits.slice(0, 4)}-${digits.slice(4)}`;
-		}
+		const normalizedMonth = month.padStart(2, "0");
+		if (parts.length === 2) return `${year}-${normalizedMonth}`;
+		if (!day) return text;
 
-		if (/^\d{4}$/.test(digits)) {
-			const month = Number(digits.slice(0, 2));
-			const day = Number(digits.slice(2));
-			if (month >= 1 && month <= 12 && day >= 1 && day <= 31) {
-				return `${digits.slice(0, 2)}-${digits.slice(2)}`;
-			}
-		}
+		const dayNumber = Number(day);
+		if (dayNumber < 1 || dayNumber > 31) return text;
 
-		return text;
+		return `${year}-${normalizedMonth}-${day.padStart(2, "0")}`;
 	}
 
 	function clearSearch() {
@@ -135,6 +130,20 @@
 
 	function toggleTheme() {
 		setTheme(theme === "dark" ? "light" : "dark");
+	}
+
+	async function toggleLiveFullscreen() {
+		if (typeof document === "undefined" || !liveFrame) return;
+
+		try {
+			if (document.fullscreenElement === liveFrame) {
+				await document.exitFullscreen();
+			} else {
+				await liveFrame.requestFullscreen();
+			}
+		} catch {
+			isLiveFullscreen = false;
+		}
 	}
 
 	async function loadClips(date: string) {
@@ -178,6 +187,19 @@
 		const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
 		setTheme(stored === "dark" || (!stored && prefersDark) ? "dark" : "light");
 	});
+
+	$effect(() => {
+		const target = liveFrame;
+		if (typeof document === "undefined" || !target) return;
+
+		const syncFullscreen = () => {
+			isLiveFullscreen = document.fullscreenElement === target;
+		};
+
+		syncFullscreen();
+		document.addEventListener("fullscreenchange", syncFullscreen);
+		return () => document.removeEventListener("fullscreenchange", syncFullscreen);
+	});
 </script>
 
 <main class="min-h-screen bg-background text-foreground lg:h-dvh lg:overflow-hidden">
@@ -189,7 +211,11 @@
 			class="flex shrink-0 items-center justify-between gap-3 border-b border-border/70 pb-3"
 		>
 			<div class="flex min-w-0 items-center gap-4">
-				<CameraIcon class="size-5 shrink-0 text-muted-foreground" />
+				<div
+					class="flex size-10 shrink-0 items-center justify-center rounded-lg border border-border bg-card shadow-sm"
+				>
+					<CameraIcon class="size-5" />
+				</div>
 				<Tabs.List variant="line" class="h-auto gap-5 rounded-none p-0">
 					<Tabs.Trigger
 						value="live"
@@ -233,12 +259,28 @@
 						直播
 					</div>
 				</div>
-				<div class="flex min-h-[260px] items-center justify-center bg-black lg:h-[calc(100%-41px)] lg:min-h-0">
+				<div
+					bind:this={liveFrame}
+					class="live-frame relative flex min-h-[260px] items-center justify-center bg-black lg:h-[calc(100%-41px)] lg:min-h-0"
+				>
 					<img
 						src="/api/live"
 						alt="Motion 实时监控画面"
 						class="block aspect-video h-auto w-full object-contain lg:h-full lg:aspect-auto"
 					/>
+					<Button.Button
+						variant="secondary"
+						size="icon"
+						class="absolute bottom-3 right-3 shadow-sm"
+						aria-label={isLiveFullscreen ? "退出全屏" : "全屏播放"}
+						onclick={toggleLiveFullscreen}
+					>
+						{#if isLiveFullscreen}
+							<MinimizeIcon class="size-4" />
+						{:else}
+							<MaximizeIcon class="size-4" />
+						{/if}
+					</Button.Button>
 				</div>
 			</section>
 		</Tabs.Content>
@@ -265,7 +307,7 @@
 								aria-label="筛选日期"
 								autocomplete="off"
 								class="pl-8 pr-8"
-								placeholder="筛选日期：2026、2026-05、05-03"
+								placeholder="筛选日期：2026 05 03"
 							/>
 							{#if hasSearch}
 								<Button.Button
@@ -457,3 +499,15 @@
 		</Tabs.Content>
 	</Tabs.Tabs>
 </main>
+
+<style>
+	.live-frame:fullscreen {
+		width: 100vw;
+		height: 100vh;
+		min-height: 100vh;
+	}
+
+	.live-frame:fullscreen img {
+		height: 100%;
+	}
+</style>
