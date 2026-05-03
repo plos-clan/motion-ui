@@ -1,42 +1,34 @@
-# sv
+# Motion UI
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+A Bun + SvelteKit interface for Motion camera live view and archived MP4 clips.
 
-## Creating a project
+## Configuration
 
-If you're seeing this, you've probably already done this step. Congrats!
-
-```sh
-# create a new project
-npx sv create my-app
-```
-
-To recreate this project with the same configuration:
+Copy `.env.example` to `.env` when defaults are not enough.
 
 ```sh
-# recreate this project
-bun x sv@0.15.2 create --template minimal --types ts --add tailwindcss="plugins:none" eslint prettier vitest="usages:unit" --install bun .
+MOTION_STREAM_URL=http://127.0.0.1:1845/
+MOTION_VIDEO_DIR=/data/Camera
 ```
 
-## Developing
+The archive reader expects Motion clips in `YYYY-MM-DD/HH-MM-SS.mp4` folders.
 
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
+## Development
 
 ```sh
-npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
+bun install
+bun run dev
 ```
 
-## Building
-
-To create a production version of your app:
+## Production
 
 ```sh
-npm run build
+bun run build
+HOST=127.0.0.1 PORT=3000 bun run start
 ```
 
-You can preview the production build with `npm run preview`.
+An experimental single binary can be produced after `bun run build`:
 
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+```sh
+bun run compile
+```
