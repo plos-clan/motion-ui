@@ -125,7 +125,7 @@
 		theme = mode;
 		if (typeof document === "undefined") return;
 		document.documentElement.classList.toggle("dark", mode === "dark");
-		window.localStorage.setItem("motion-ui-theme", mode);
+		document.documentElement.classList.toggle("light", mode === "light");
 	}
 
 	function toggleTheme() {
@@ -183,9 +183,20 @@
 
 	$effect(() => {
 		if (typeof window === "undefined") return;
-		const stored = window.localStorage.getItem("motion-ui-theme");
-		const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-		setTheme(stored === "dark" || (!stored && prefersDark) ? "dark" : "light");
+		const systemTheme = window.matchMedia("(prefers-color-scheme: dark)");
+		const syncTheme = () => {
+			if (document.documentElement.classList.contains("dark")) {
+				theme = "dark";
+			} else if (document.documentElement.classList.contains("light")) {
+				theme = "light";
+			} else {
+				theme = systemTheme.matches ? "dark" : "light";
+			}
+		};
+
+		syncTheme();
+		systemTheme.addEventListener("change", syncTheme);
+		return () => systemTheme.removeEventListener("change", syncTheme);
 	});
 
 	$effect(() => {
