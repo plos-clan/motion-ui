@@ -23,7 +23,6 @@
 	import * as Select from "$lib/components/ui/select";
 	import * as Separator from "$lib/components/ui/separator";
 	import * as Tabs from "$lib/components/ui/tabs";
-	import * as Tooltip from "$lib/components/ui/tooltip";
 	import type { PageData } from "./$types";
 
 	type Day = PageData["days"][number];
@@ -41,8 +40,8 @@
 	type Mode = "light" | "dark";
 
 	let { data }: { data: PageData } = $props();
-	let days = $state<Day[]>([]);
-	let selectedDate = $state("");
+	let daysOverride = $state<Day[] | null>(null);
+	let selectedDateOverride = $state<string | null>(null);
 	let clips = $state<Clip[]>([]);
 	let selectedClip = $state<Clip | null>(null);
 	let loadingClips = $state(false);
@@ -51,8 +50,11 @@
 	let search = $state("");
 	let activeTab = $state<"live" | "archive">("live");
 	let theme = $state<Mode>("light");
-	let initialized = false;
 
+	const days = $derived(daysOverride ?? data.days);
+	const selectedDate = $derived(
+		selectedDateOverride ?? data.selectedDate ?? data.days[0]?.date ?? ""
+	);
 	const totalClips = $derived(days.reduce((sum, day) => sum + day.count, 0));
 	const maxDayCount = $derived(Math.max(1, ...days.map((day) => day.count)));
 	const selectedDay = $derived(days.find((day) => day.date === selectedDate) ?? null);
@@ -80,7 +82,7 @@
 	}
 
 	function pickDay(date: string) {
-		selectedDate = date;
+		selectedDateOverride = date;
 		activeTab = "archive";
 	}
 
@@ -95,6 +97,7 @@
 
 	function setTheme(mode: Mode) {
 		theme = mode;
+		if (typeof document === "undefined") return;
 		document.documentElement.classList.toggle("dark", mode === "dark");
 		localStorage.setItem("motion-ui-theme", mode);
 	}
@@ -110,8 +113,11 @@
 		try {
 			const response = await fetch("/api/archive/days?refresh=1");
 			if (!response.ok) throw new Error("days");
-			days = (await response.json()).days;
-			selectedDate ||= days[0]?.date ?? "";
+			const nextDays: Day[] = (await response.json()).days;
+			daysOverride = nextDays;
+			if (!nextDays.some((day) => day.date === selectedDate)) {
+				selectedDateOverride = nextDays[0]?.date ?? "";
+			}
 		} catch {
 			archiveError = "无法刷新历史目录";
 		} finally {
@@ -140,25 +146,18 @@
 	}
 
 	$effect(() => {
-		if (initialized) return;
-		initialized = true;
-		days = data.days;
-		selectedDate = data.selectedDate ?? data.days[0]?.date ?? "";
-	});
-
-	$effect(() => {
 		loadClips(selectedDate);
 	});
 
 	$effect(() => {
+		if (typeof localStorage === "undefined") return;
 		const stored = localStorage.getItem("motion-ui-theme");
 		const prefersDark = matchMedia("(prefers-color-scheme: dark)").matches;
 		theme = stored === "dark" || (!stored && prefersDark) ? "dark" : "light";
 	});
 </script>
 
-<Tooltip.Provider>
-	<main class="min-h-screen bg-background text-foreground">
+<main class="min-h-screen bg-background text-foreground">
 		<div class="mx-auto flex min-h-screen w-full max-w-[1680px] flex-col gap-4 px-3 py-3 sm:px-5 lg:px-6">
 			<header
 				class="flex flex-col gap-3 border-b border-border/70 pb-3 lg:flex-row lg:items-center lg:justify-between"
@@ -193,18 +192,13 @@
 						<VideoIcon class="size-3.5" />
 						{totalClips} 段
 					</Badge.Badge>
-					<Tooltip.Root>
-							<Tooltip.Trigger>
-								<Button.Button variant="outline" size="icon" onclick={toggleTheme}>
-									{#if theme === "dark"}
-										<SunIcon class="size-4" />
-									{:else}
-										<MoonIcon class="size-4" />
-									{/if}
-								</Button.Button>
-							</Tooltip.Trigger>
-						<Tooltip.Content sideOffset={6}>切换深色模式</Tooltip.Content>
-					</Tooltip.Root>
+					<Button.Button variant="outline" size="icon" aria-label="切换深色模式" onclick={toggleTheme}>
+						{#if theme === "dark"}
+							<SunIcon class="size-4" />
+						{:else}
+							<MoonIcon class="size-4" />
+						{/if}
+					</Button.Button>
 				</div>
 			</header>
 
@@ -297,7 +291,11 @@
 									<Input.Input bind:value={search} class="pl-8" placeholder="查找日期" />
 								</div>
 								<div class="mt-3">
-									<Select.Select type="single" bind:value={selectedDate}>
+									<Select.Select
+										type="single"
+										value={selectedDate}
+										onValueChange={(value) => (selectedDateOverride = value)}
+									>
 										<Select.Trigger class="w-full">
 											{selectedDate ? formatDate(selectedDate) : "选择日期"}
 										</Select.Trigger>
@@ -492,5 +490,4 @@
 				</Tabs.Content>
 			</Tabs.Tabs>
 		</div>
-	</main>
-</Tooltip.Provider>
+</main>
