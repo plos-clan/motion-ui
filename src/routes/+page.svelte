@@ -1,7 +1,7 @@
 <script lang="ts">
-	import ActivityIcon from "lucide-svelte/icons/activity";
 	import ArchiveIcon from "lucide-svelte/icons/archive";
 	import CalendarIcon from "lucide-svelte/icons/calendar-days";
+	import CameraIcon from "lucide-svelte/icons/camera";
 	import ChevronLeftIcon from "lucide-svelte/icons/chevron-left";
 	import ChevronRightIcon from "lucide-svelte/icons/chevron-right";
 	import MoonIcon from "lucide-svelte/icons/moon";
@@ -188,16 +188,23 @@
 		<header
 			class="flex shrink-0 items-center justify-between gap-3 border-b border-border/70 pb-3"
 		>
-			<Tabs.List variant="line" class="h-8">
-				<Tabs.Trigger value="live" class="gap-2">
-					<ActivityIcon class="size-4" />
-					实时画面
-				</Tabs.Trigger>
-				<Tabs.Trigger value="archive" class="gap-2">
-					<CalendarIcon class="size-4" />
-					历史片段
-				</Tabs.Trigger>
-			</Tabs.List>
+			<div class="flex min-w-0 items-center gap-4">
+				<CameraIcon class="size-5 shrink-0 text-muted-foreground" />
+				<Tabs.List variant="line" class="h-auto gap-5 rounded-none p-0">
+					<Tabs.Trigger
+						value="live"
+						class="h-auto flex-none rounded-none border-0 bg-transparent px-0 py-0 text-sm font-medium shadow-none data-active:border-0 data-active:bg-transparent data-active:shadow-none dark:data-active:border-0 dark:data-active:bg-transparent"
+					>
+						实时画面
+					</Tabs.Trigger>
+					<Tabs.Trigger
+						value="archive"
+						class="h-auto flex-none rounded-none border-0 bg-transparent px-0 py-0 text-sm font-medium shadow-none data-active:border-0 data-active:bg-transparent data-active:shadow-none dark:data-active:border-0 dark:data-active:bg-transparent"
+					>
+						历史片段
+					</Tabs.Trigger>
+				</Tabs.List>
+			</div>
 
 			<div class="flex shrink-0 items-center gap-2">
 				<Badge.Badge variant="outline" class="hidden h-8 rounded-lg px-3 sm:inline-flex">
