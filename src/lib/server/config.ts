@@ -6,6 +6,9 @@ function readEnv(name: string) {
 }
 
 export const motionConfig = {
+	get authToken() {
+		return readEnv("AUTH_TOKEN")
+	},
 	get streamUrl() {
 		return readEnv("LIVE_URL")
 	},

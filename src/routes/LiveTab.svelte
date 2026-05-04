@@ -1,6 +1,6 @@
 <script lang="ts">
-import MaximizeIcon from "lucide-svelte/icons/maximize"
-import MinimizeIcon from "lucide-svelte/icons/minimize"
+import MaximizeIcon from "@lucide/svelte/icons/maximize"
+import MinimizeIcon from "@lucide/svelte/icons/minimize"
 import * as Button from "$lib/components/ui/button"
 import * as Tabs from "$lib/components/ui/tabs"
 

@@ -32,3 +32,23 @@ Single binary can be produced by `bun run build`:
 ```sh
 bun run compile
 ```
+
+## Container
+
+Build the image with Podman:
+
+```sh
+podman build -t motion-ui .
+```
+
+Run it with the archive mounted:
+
+```sh
+podman run -d \
+  --name motion-ui \
+  --restart always \
+  -e LIVE_URL=http://host.containers.internal:1845 \
+  -v /data/Camera:/video:ro \
+  -p 1234:3000 \
+  motion-ui
+```
